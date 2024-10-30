@@ -502,11 +502,11 @@ if __name__ == '__main__':
             pvs_random_defer_per_gamma.append(pv_random_defer_list)
 
             # LCE Policy Class
-            propensity_model, \
-            quantile_model_lower, quantile_model_upper, \
-            cvar_model_lower, cvar_model_upper, \
-            mu_model, \
-            cate_bounds_model = get_nuisances_models_RF(gamma=gamma)
+            # propensity_model, \
+            # quantile_model_lower, quantile_model_upper, \
+            # cvar_model_lower, cvar_model_upper, \
+            # mu_model, \
+            # cate_bounds_model = get_nuisances_models_RF(gamma=gamma)
 
             # Logistic Policy model
             lce_logistic_model = nn.Sequential(
@@ -517,14 +517,7 @@ if __name__ == '__main__':
             lce_policy_path = path_lce_logistic/ f"lce_{log_gamma}.pkl"
             if learn_policies_flag:
                 lce_logistic_policy_model = LCE_Policy(tau_hat=tau_hat,
-                                                       propensity_model=propensity_model,
-                                                       quantile_minus_model=quantile_model_lower,
-                                                       quantile_plus_model=quantile_model_upper,
-                                                       cvar_minus_model=cvar_model_lower,
-                                                       cvar_plus_model=cvar_model_upper,
-                                                       mu_model=mu_model,
                                                        policy_model=lce_logistic_model,
-                                                       cate_bounds_model=cate_bounds_model,
                                                        use_rho=True,
                                                        gamma=gamma,
                                                        higher_better=True)
