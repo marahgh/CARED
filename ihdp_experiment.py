@@ -24,7 +24,7 @@ import seaborn as sns
 from datasets import IHDP
 
 # ConfHAI imports
-from models.confhai.utils import *
+# from models.confhai.utils import *
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 from torch import Tensor
@@ -61,34 +61,34 @@ GAMMAS = {
     # "10.": math.exp(10.0),
 }
 
-# Gammas dictionary for calculating the CAPO Bounds
-GAMMAS_B = {
-    "0.0": math.exp(0.0),
-    "0.1": math.exp(0.1),
-    "0.2": math.exp(0.2),
-    "0.5": math.exp(0.5),
-    "0.7": math.exp(0.7),
-    "1.0": math.exp(1.0),
-    "1.2": math.exp(1.2),
-    "1.5": math.exp(1.5),
-    "2.0": math.exp(2.0),
-    "2.5": math.exp(2.5),
-    "3.0": math.exp(3.0),
-    "3.5": math.exp(3.5),
-    "4.0": math.exp(4.0),
-    "4.5": math.exp(4.5),
-    "5.0": math.exp(5.0),
-    "5.5": math.exp(5.5),
-    "6.0": math.exp(6.0),
-    "6.5": math.exp(6.5),
-    "7.0": math.exp(7.0),
-    "7.5": math.exp(7.5),
-    "8.0": math.exp(8.0),
-    "8.5": math.exp(8.5),
-    "9.0": math.exp(9.0),
-    "9.5": math.exp(9.5),
-    "10.": math.exp(10.0),
-}
+# # Gammas dictionary for calculating the CAPO Bounds
+# GAMMAS_B = {
+#     "0.0": math.exp(0.0),
+#     "0.1": math.exp(0.1),
+#     "0.2": math.exp(0.2),
+#     "0.5": math.exp(0.5),
+#     "0.7": math.exp(0.7),
+#     "1.0": math.exp(1.0),
+#     "1.2": math.exp(1.2),
+#     "1.5": math.exp(1.5),
+#     "2.0": math.exp(2.0),
+#     "2.5": math.exp(2.5),
+#     "3.0": math.exp(3.0),
+#     "3.5": math.exp(3.5),
+#     "4.0": math.exp(4.0),
+#     "4.5": math.exp(4.5),
+#     "5.0": math.exp(5.0),
+#     "5.5": math.exp(5.5),
+#     "6.0": math.exp(6.0),
+#     "6.5": math.exp(6.5),
+#     "7.0": math.exp(7.0),
+#     "7.5": math.exp(7.5),
+#     "8.0": math.exp(8.0),
+#     "8.5": math.exp(8.5),
+#     "9.0": math.exp(9.0),
+#     "9.5": math.exp(9.5),
+#     "10.": math.exp(10.0),
+# }
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = 50
@@ -154,7 +154,7 @@ def default_policy(q_0, p):
 # Parameters for CRLogit Method
 N_REPS = 1
 GAMS = np.fromiter(GAMMAS.keys(), dtype=float)
-GAMS_B = np.fromiter(GAMMAS_B.keys(), dtype=float)
+# GAMS_B = np.fromiter(GAMMAS_B.keys(), dtype=float)
 
 ENN = 4000
 d = 24  # dimension of x
@@ -270,10 +270,10 @@ if __name__ == '__main__':
     exp_feature = "work.dur"
 
     # Path of the directory for saving the results
-    ihdp_ver = "xgboosttmp"
+    ihdp_ver = ""
     ihdp_dir = "ihdp" + ihdp_ver
 
-    trials = 10 #1111
+    trials = 2 #1111
 
     # Dataset and scores setup
     train_dss = []
@@ -377,19 +377,18 @@ if __name__ == '__main__':
         output_dir.mkdir(parents=True, exist_ok=True)
         path_lce_logistic = output_dir /"lce_policies"
         path_lce_logistic.mkdir(parents=True, exist_ok=True)
-        path_confhai = output_dir/ "confhai_policies"
-        path_confhai.mkdir(parents=True, exist_ok=True)
+        # path_confhai = output_dir/ "confhai_policies"
+        # path_confhai.mkdir(parents=True, exist_ok=True)
 
         # Paths for saving the policies
 
-        file_path_lce_logistic = output_dir / "lce_policies_ihdp_logistic" \
-                                              ".json"
+        file_path_lce_logistic = output_dir / "lce_policies.json"
         if file_path_lce_logistic.exists():
             with file_path_lce_logistic.open(mode="r") as fp:
                 lce_logistic_policies = load_policies(file_path=file_path_lce_logistic)
                 learn_policies_flag = False
 
-        file_path_cr = output_dir / "pvs_angela_ihdp_updtd_th_expert"
+        file_path_cr = output_dir / "pvs_crlogits"
         if file_path_cr.exists():
             cr_learn_policies = False
             pv_cr_logit_list = pickle.load(open(file_path_cr, "rb"))
@@ -577,57 +576,6 @@ if __name__ == '__main__':
             policy_value_pess_policies = policy_value(pi=pi_pess_policies, y1=Y_1, y0=Y_0).item()
             pv_pess_policies_list.append(policy_value_pess_policies)
 
-            # # ConfHAI Policy
-            # # Learn the true propensities of the human expert which sees u (based on x and u)
-            # clf = LogisticRegression(C=1, penalty='elasticnet', solver='saga', l1_ratio=0.7, max_iter=10000)
-            # x_full = np.concatenate((ihdp_train_ds.x , ihdp_train_ds.u), axis=1)
-            # clf.fit(x_full, ihdp_train_ds.t)
-            # q0_all = clf.predict_proba(x_full)
-            # batchsize = 32
-            # neopch = 100
-            # lr = 0.01
-            # hidd = ihdp_train_ds.x.shape[1] // 3
-            # c = 0
-            # d = ihdp_train_ds.x.shape[1]
-            #
-            #
-            # dataset = TensorDataset(Tensor(ihdp_train_ds.x).to(device),
-            #                         Tensor(q0_all).to(device),
-            #                         Tensor(ihdp_train_ds.t).to(device),
-            #                         Tensor((-1)*ihdp_train_ds.y).to(device),
-            #                         )
-            # loader = DataLoader(dataset, batch_size=batchsize)
-            # model_path = path_confhai/ f"confhai_model_{log_gamma}.pkl"
-            # router_path = path_confhai/ f"confhai_router_{log_gamma}.pkl"
-            # if model_path.exists():
-            #     confhai_model = pickle.load(open(model_path, 'rb'))
-            #     confhai_router = pickle.load(open(router_path, 'rb'))
-            #     con_ind = 0
-            # else:
-            #     model, router, con_ind = train_confhai(input_dim=d,
-            #                                        output_dim=2,
-            #                                        loader=loader,
-            #                                        num_epochs=neopch,
-            #                                        lr=lr,
-            #                                        C=c,
-            #                                        gamma=gamma,
-            #                                        hidd=hidd,
-            #                                        model=None,
-            #                                        router=None)
-            #     confhai_model = model
-            #     confhai_router = router
-            #     pickle.dump(model, open(model_path, 'wb'))
-            #     pickle.dump(router, open(router_path, 'wb'))
-            #
-            #
-            # x_test = ihdp_test_ds.x
-            # T_test = ihdp_test_ds.t
-            # Y_all_test = np.concatenate((np.expand_dims(np.asarray((-1) * Y_0),axis=1), np.expand_dims(np.asarray((-1)*Y_1),axis=1)), axis=1)
-            # pv_confHAI, defer_rate_confhai = test_hai(confhai_model, confhai_router, x_test, Y_all_test, T_test, control=False, con_ind=con_ind)
-            # pv_confHAI = (-1) * pv_confHAI
-            # print(f'human ai conf risk is {pv_confHAI}')
-            # pv_confHAI_policies_list.append(pv_confHAI)
-            # deferral_rate_conhai_list.append(defer_rate_confhai)
 
         if learn_policies_flag:
             save_policies(policies=lce_logistic_policies, file_path=file_path_lce_logistic)
@@ -683,9 +631,9 @@ if __name__ == '__main__':
     # plt.plot(GAMS, means, label="CONfHAI Policy", color="crimson", marker=markers[6])
     # plt.fill_between(GAMS, means - sds, means + sds, color="crimson", alpha=0.2)
 
-    means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
-    plt.plot(GAMS, means, label="CARED Policy", color="C1", marker=markers[4])
-    plt.fill_between(GAMS, means - sds, means + sds, color="C1", alpha=0.2)
+    # means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
+    # plt.plot(GAMS, means, label="CARED Policy", color="C1", marker=markers[4])
+    # plt.fill_between(GAMS, means - sds, means + sds, color="C1", alpha=0.2)
 
     means, sds = calc_means_sems(pv_pess_policies_list_all_trials)
     plt.plot(GAMS, means, label="Pessimistic Policy", color="navy", marker=markers[5])
@@ -707,7 +655,7 @@ if __name__ == '__main__':
     plt.legend(fontsize=12, loc=(1.02, 0.42))
     plt.xlabel(r'$\log(\Lambda)$ uncertainty parameter', fontsize=15)
     # plt.legend()
-    plt.savefig("ihdp_policy_value_log_gamma_plot_updated.pdf")
+    # plt.savefig("ihdp_policy_value_log_gamma_plot_updated.pdf")
     plt.show()
 
     # Deferral Rates plot
@@ -725,12 +673,12 @@ if __name__ == '__main__':
     #              yerr=sds,
     #              fmt='o', color="crimson")
 
-    # LCE Policy - Logistic
-    means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
-    plt.scatter(deferral_rates_lce_logistic_means, means, label="CARED Policy", color="C1", marker=markers[4])
-    plt.errorbar(deferral_rates_lce_logistic_means, means,
-                 yerr=sds,
-                 fmt='o', color="C1")
+    # # LCE Policy - Logistic
+    # means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
+    # plt.scatter(deferral_rates_lce_logistic_means, means, label="CARED Policy", color="C1", marker=markers[4])
+    # plt.errorbar(deferral_rates_lce_logistic_means, means,
+    #              yerr=sds,
+    #              fmt='o', color="C1")
 
 
     # B-Learner Policy
@@ -756,5 +704,5 @@ if __name__ == '__main__':
     # plt.legend(loc=2)
     plt.legend(fontsize=12, loc=(1.02, 0.42))
     # plt.legend()
-    plt.savefig("ihdp_policy_value_deferral_plot_updated_.pdf")
+    # plt.savefig("ihdp_policy_value_deferral_plot_updated_.pdf")
     plt.show()

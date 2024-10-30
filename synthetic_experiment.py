@@ -383,22 +383,22 @@ if __name__ == '__main__':
 
                 lce_pi = lce_model.predict(test_loader)
                 lce_logistic_policies.update({gamma: torch.Tensor(lce_pi)})
-                # lce_logistic_policy_model = LCE_Policy(tau_hat=tau_hat,
-                #                                        propensity_model=None,
-                #                                        quantile_minus_model=None,
-                #                                        quantile_plus_model=None,
-                #                                        cvar_minus_model=None,
-                #                                        cvar_plus_model=None,
-                #                                        mu_model=None,
-                #                                        policy_model=model,
-                #                                        cate_bounds_model=None,
-                #                                        use_rho=True,
-                #                                        gamma=gamma,
-                #                                        higher_better=False,
-                #                                        baseline_p0=True)
-                # lce_logistic_policy_model.fit(ds_train=ds_train, ds_valid=ds_valid)
-                # lce_pi = lce_logistic_policy_model.predict(ds_test=ds_test)
-                # lce_logistic_policies.update({gamma: torch.Tensor(lce_pi)})
+                lce_logistic_policy_model = LCE_Policy(tau_hat=tau_hat,
+                                                       propensity_model=None,
+                                                       quantile_minus_model=None,
+                                                       quantile_plus_model=None,
+                                                       cvar_minus_model=None,
+                                                       cvar_plus_model=None,
+                                                       mu_model=None,
+                                                       policy_model=model,
+                                                       cate_bounds_model=None,
+                                                       use_rho=True,
+                                                       gamma=gamma,
+                                                       higher_better=False,
+                                                       baseline_p0=True)
+                lce_logistic_policy_model.fit(ds_train=ds_train, ds_valid=ds_valid)
+                lce_pi = lce_logistic_policy_model.predict(ds_test=ds_test)
+                lce_logistic_policies.update({gamma: torch.Tensor(lce_pi)})
             else:
                 lce_pi = lce_logistic_policies[str(gamma)]
             lce_pi_with_exp, defer_count, deferral_rate = update_expert_preds(preds=lce_pi,
@@ -408,29 +408,6 @@ if __name__ == '__main__':
             pv_lce = policy_regret(pi=lce_pi_with_exp, y0=Y0_test, y1=Y1_test)
             pv_lce_list.append(pv_lce)
 
-            model_pess = nn.Sequential(
-                nn.Linear(5, 2),
-                nn.Sigmoid()
-            )
-            # if learn_policies_lg_lce_flag_pess:
-            #     train_loader = DataLoader(ds_train, batch_size=16, shuffle=True, drop_last=True)
-            #     test_loader = DataLoader(ds_test, batch_size=10, shuffle=True, drop_last=True)
-            #     early_stop_callback = EarlyStopping(monitor="train_loss", patience=3, verbose=False,
-            #                                         mode="min")
-            #     trainer_pess = Trainer(callbacks=[early_stop_callback],
-            #                            max_epochs=100, log_every_n_steps=2, accelerator="gpu", devices=[0, 1],
-            #                            enable_progress_bar=False)
-            #     lce_model_pess = LCEModel(pmodel=model_pess, training_costs=gamma_costs_matrix_cons_pess,
-            #                               lr=0.001, weight_decay=0)
-            #     trainer_pess.fit(model=lce_model_pess, train_dataloaders=train_loader)
-            #
-            #     lce_pi_pess = lce_model_pess.predict(test_loader)
-            #     lce_logistic_policies_pess.update({gamma: torch.Tensor(lce_pi_pess)})
-            #
-            # else:
-            #     lce_pi_pess = lce_logistic_policies_pess[str(gamma)]
-            # pv_lce_pess = policy_regret(pi=torch.Tensor(lce_pi_pess), y0=Y0_test, y1=Y1_test)
-            # pv_lce_list_pess.append(pv_lce_pess)
 
             # Pessimistc Policy
             pi_pess_policies = np.zeros(len(current_expet_test))
@@ -459,9 +436,6 @@ if __name__ == '__main__':
         pv_pess_policies_list_all_trials.append(pv_pess_policies_list)
         pv_cate_interval_list_all_trials.append(pv_cate_interval_list)
 
-        # pv_random_defer_list_all_trials.append(np.mean(pvs_random_defer_per_gamma, axis=0))
-
-
 
     confhai_colors = ['b', 'g', 'r', 'm', 'b', 'purple', 'brown', 'c', ]
 
@@ -473,15 +447,15 @@ if __name__ == '__main__':
                      np.mean(pv_lce_list_all_trials, axis=0) + np.std(pv_lce_list_all_trials, axis=0) / np.sqrt(nrep),
                      color="C1", alpha=0.1)
 
-    # plt.plot(GAMS, np.mean(pv_lce_list_all_trials_pess, axis=0), label="CARED Policy - No Deferral", color="navy",
-    #          marker=markers[4])
-    # plt.fill_between(GAMS,
-    #                  np.mean(pv_lce_list_all_trials_pess, axis=0) - np.std(pv_lce_list_all_trials_pess,
-    #                                                                        axis=0) / np.sqrt(nrep)
-    #                  ,
-    #                  np.mean(pv_lce_list_all_trials_pess, axis=0) + np.std(pv_lce_list_all_trials_pess,
-    #                                                                        axis=0) / np.sqrt(nrep),
-    #                  color="navy", alpha=0.1)
+    plt.plot(GAMS, np.mean(pv_lce_list_all_trials_pess, axis=0), label="CARED Policy - No Deferral", color="navy",
+             marker=markers[4])
+    plt.fill_between(GAMS,
+                     np.mean(pv_lce_list_all_trials_pess, axis=0) - np.std(pv_lce_list_all_trials_pess,
+                                                                           axis=0) / np.sqrt(nrep)
+                     ,
+                     np.mean(pv_lce_list_all_trials_pess, axis=0) + np.std(pv_lce_list_all_trials_pess,
+                                                                           axis=0) / np.sqrt(nrep),
+                     color="navy", alpha=0.1)
 
     plt.plot(GAMS, np.mean(pv_pess_policies_list_all_trials, axis=0), label="Pessimistic Policy", color="navy",
              marker=markers[4])
@@ -493,29 +467,6 @@ if __name__ == '__main__':
                                                                            axis=0) / np.sqrt(nrep),
                      color="navy", alpha=0.1)
 
-    # plt.plot(GAMS, np.mean(pv_random_defer_list_all_trials, axis=0), label="CARED Policy - Random Deferral", color="crimson", marker=markers[5])
-    # plt.fill_between(GAMS,
-    #                  np.mean(pv_random_defer_list_all_trials, axis=0) - np.std(pv_random_defer_list_all_trials, axis=0) / np.sqrt(trials)
-    #                  ,
-    #                  np.mean(pv_random_defer_list_all_trials, axis=0) + np.std(pv_random_defer_list_all_trials, axis=0) / np.sqrt(trials),
-    #                  color="crimson", alpha=0.1)
-
-    # plt.plot(GAMS, np.mean(pv_conf_cate_list_all_trials, axis=0), label="CATE Policy", color="C9", marker=markers[4])
-    # plt.fill_between(GAMS,
-    #                  np.mean(pv_conf_cate_list_all_trials, axis=0) - np.std(pv_conf_cate_list_all_trials,
-    #                                                                         axis=0) / np.sqrt(trials)
-    #                  , np.mean(pv_conf_cate_list_all_trials, axis=0) + np.std(pv_conf_cate_list_all_trials,
-    #                                                                           axis=0) / np.sqrt(trials),
-    #                  color="C9", alpha=0.1)
-
-    # plt.plot(GAMS, np.mean(pv_all_control_list_all_trials, axis=0), label="Baseline Policy", color="C7",
-    #          marker=markers[5])
-    # plt.fill_between(GAMS,
-    #                  np.mean(pv_all_control_list_all_trials, axis=0) - np.std(pv_all_control_list_all_trials,
-    #                                                                           axis=0) / np.sqrt(nrep)
-    #                  , np.mean(pv_all_control_list_all_trials, axis=0) + np.std(pv_all_control_list_all_trials,
-    #                                                                             axis=0) / np.sqrt(nrep),
-    #                  color="C7", alpha=0.1)
 
     plt.plot(GAMS, np.mean(pv_cate_interval_list_all_trials, axis=0), label="B-Learner Policy", color=colors[5],
              marker=markers[6])
@@ -539,5 +490,5 @@ if __name__ == '__main__':
     plt.xlabel(r'$\log(\Lambda)$ uncertainty parameter', fontsize=15)
     # plt.legend(loc=3)
     plt.legend(fontsize=12, loc=(1.02, 0.42))
-    plt.savefig('synthetic_policy_value_log_gamma_updated.pdf', bbox_inches='tight')
+    plt.savefig('synthetic_policy_value_log_gamma.pdf', bbox_inches='tight')
     plt.show()

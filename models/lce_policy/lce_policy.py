@@ -138,7 +138,7 @@ def objective_ray(trial, train_loader, val_loader, devices, policy_model,
     val_loss = trainer.callback_metrics['val_loss'].item()
     # tune.report(val_loss=val_loss)
     ray.train.report({"val_loss": val_loss})
-    ray.train.report({"output_dims": output_dims})
+    # ray.train.report({"output_dims": output_dims})
 
     # return train_loss
 
@@ -492,26 +492,26 @@ class LCE_Policy:
         lr = best_params["lr"]
         optimizer_name = best_params["optimizer_name"]
         weight_decay = best_params["weight_decay"]
-        dropout = best_params["dropout"]
+        # dropout = best_params["dropout"]
 
-        # Create and train the final model with the best hyperparameters
-        if self.policy_model == None:
-            # Build the final model
-            output_dims = best_trial.last_result["output_dims"]
-            input_dim = 24
-            num_classes = 3
-            layers = []
-            for output_dim in output_dims:
-                layers.append(nn.Linear(input_dim, output_dim))
-                layers.append(nn.BatchNorm1d(output_dim))
-                layers.append(nn.ReLU())
-                layers.append(nn.Dropout(dropout))
-                input_dim = output_dim
-
-            layers.append(nn.Linear(input_dim, num_classes))
-            layers.append(nn.Sigmoid())
-
-            self.policy_model = nn.Sequential(*layers)
+        # # Create and train the final model with the best hyperparameters
+        # if self.policy_model == None:
+        #     # Build the final model
+        #     output_dims = best_trial.last_result["output_dims"]
+        #     input_dim = 24
+        #     num_classes = 3
+        #     layers = []
+        #     for output_dim in output_dims:
+        #         layers.append(nn.Linear(input_dim, output_dim))
+        #         layers.append(nn.BatchNorm1d(output_dim))
+        #         layers.append(nn.ReLU())
+        #         layers.append(nn.Dropout(dropout))
+        #         input_dim = output_dim
+        #
+        #     layers.append(nn.Linear(input_dim, num_classes))
+        #     layers.append(nn.Sigmoid())
+        #
+        #     self.policy_model = nn.Sequential(*layers)
 
         final_model = LCEModel(pmodel=self.policy_model,
                                training_costs=costs_matrix_train,
