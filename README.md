@@ -16,7 +16,7 @@ policy model can predict a treatment assignment or defer to an expert under hidd
 * [pytorch-lightning](https://www.pytorchlightning.ai/)
 
 ## Usage Example
-We train a `CARED` policy on observational train and validation sets $Z=(X, A, Y)$: `ds_train` and `ds_test`, predict the policy on a test set `ds_test.
+We train a `CARED` policy on observational train and validation sets $Z=(X, A, Y)$: `ds_train` and `ds_test`, predict the policy on a test set `ds_test`.
 Given the `CAPO_bounds` We get from the `BLearner` with a specified confounding degree of `gamma`. We then train the policy as follows: 
 ```Python
 import torch
