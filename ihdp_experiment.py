@@ -1,16 +1,12 @@
 from pathlib import Path
 import json
-
 import math
 import random
-
 import numpy as np
 from scipy import stats
-
 import torch
 import torch.nn as nn
 from joblib import Parallel, delayed
-
 from models.crlogit.data_scenarios import *
 import statsmodels.api as sm
 
@@ -61,34 +57,6 @@ GAMMAS = {
     # "10.": math.exp(10.0),
 }
 
-# # Gammas dictionary for calculating the CAPO Bounds
-# GAMMAS_B = {
-#     "0.0": math.exp(0.0),
-#     "0.1": math.exp(0.1),
-#     "0.2": math.exp(0.2),
-#     "0.5": math.exp(0.5),
-#     "0.7": math.exp(0.7),
-#     "1.0": math.exp(1.0),
-#     "1.2": math.exp(1.2),
-#     "1.5": math.exp(1.5),
-#     "2.0": math.exp(2.0),
-#     "2.5": math.exp(2.5),
-#     "3.0": math.exp(3.0),
-#     "3.5": math.exp(3.5),
-#     "4.0": math.exp(4.0),
-#     "4.5": math.exp(4.5),
-#     "5.0": math.exp(5.0),
-#     "5.5": math.exp(5.5),
-#     "6.0": math.exp(6.0),
-#     "6.5": math.exp(6.5),
-#     "7.0": math.exp(7.0),
-#     "7.5": math.exp(7.5),
-#     "8.0": math.exp(8.0),
-#     "8.5": math.exp(8.5),
-#     "9.0": math.exp(9.0),
-#     "9.5": math.exp(9.5),
-#     "10.": math.exp(10.0),
-# }
 
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.size'] = 50
@@ -252,14 +220,6 @@ def get_ihdp_true_gamma(ihdp_train_ds, ihdp_test_ds):
 
     return np.log(true_gamma)
 
-# def get_true_propensities(train_ds, test_ds):
-#     clf = LogisticRegression(C=1, penalty='elasticnet', solver='saga', l1_ratio=0.7, max_iter=10000)
-#     x_full = np.concatenate((train_ds.x, train_ds.u), axis=1)
-#     x_full_test = np.concatenate((test_ds.x, test_ds.u), axis=1)
-#     clf.fit(x_full, train_ds.t)
-#     full_propensity_test = clf.predict_proba(x_full_test)[:, [1]]
-#     return full_propensity_test
-
 if __name__ == '__main__':
 
     project_path = Path(os.getcwd())
@@ -273,7 +233,7 @@ if __name__ == '__main__':
     ihdp_ver = ""
     ihdp_dir = "ihdp" + ihdp_ver
 
-    trials = 2 #1111
+    trials = 1111 #1111
 
     # Dataset and scores setup
     train_dss = []
@@ -310,7 +270,8 @@ if __name__ == '__main__':
                                                  trial=trial,
                                                  ds_train=ihdp_train_ds,
                                                  ds_valid=ihdp_val_ds,
-                                                 ds_test=ihdp_test_ds)
+                                                 ds_test=ihdp_test_ds,
+                                                 GAMMAS=GAMMAS)
         blearner_results.append(results)
 
     # Calculating the B-Learner CAPO bounds in parallel
@@ -381,7 +342,6 @@ if __name__ == '__main__':
         # path_confhai.mkdir(parents=True, exist_ok=True)
 
         # Paths for saving the policies
-
         file_path_lce_logistic = output_dir / "lce_policies.json"
         if file_path_lce_logistic.exists():
             with file_path_lce_logistic.open(mode="r") as fp:
@@ -584,118 +544,114 @@ if __name__ == '__main__':
 
         pv_random_defer_list_all_trials.append(np.mean(pvs_random_defer_per_gamma, axis=0))
 
-        # Deferral rates lists for all trials
-        deferral_rates_lce_logistic_list_all_trials.append(deferral_rates_lce_logisitc_list)
-        deferral_rates_cate_interval_all_trials.append(deferral_rates_cate_interval)
-        deferral_rate_conhai_list_all_trials.append(deferral_rate_conhai_list)
-
-    deferral_rates_lce_logistic_means, deferral_rates_lce_logistic_sem = calc_means_sems(
-        deferral_rates_lce_logistic_list_all_trials)
-
-    deferral_rates_confhai_means, deferral_rates_confhai_sem = calc_means_sems(deferral_rate_conhai_list_all_trials)
-    deferral_rates = [i / (len(pv_oracle_list_all_trials[0]) - 1) for i in
-                      range(len(pv_oracle_list_all_trials[0]))] if len(pv_oracle_list_all_trials[0]) > 1 else [1.0]
-
-    deferral_rates_cate_interval_mean, _ = calc_means_sems(deferral_rates_cate_interval_all_trials)
-
-    # Calculating true log gamma
-    true_log_gamma = get_ihdp_true_gamma(ihdp_train_ds=train_dss[0], ihdp_test_ds=test_dss[0])
-
-    # Plotting the results
-    colors = ['b', 'g', 'r', 'm', 'b', 'purple', 'brown', 'c', ]
-    pltlabels = ['CRLogit', 'CRLogit L1 0.5', 'CRLogit L1 0.25']
-    markers = ['>', '+', '.', ',', 'o', 'v', 'x', 's', 'D', '|']
-    fig = plt.figure(figsize=(8, 3))
-
-    # Policy value - log gamma plot
-    ax = ggplot_log_style_deferral(figsize=(682 / 72, 512 / 72), log_y=False)
-
-
-
-    means, sds = calc_means_sems(pv_curr_list_all_trials)
-    plt.plot(GAMS, means, label="Expert Policy", color=colors[1], marker=markers[1])
-    plt.fill_between(GAMS, means - sds, means + sds, color=colors[1], alpha=0.2)
-
-    means, sds = calc_means_sems(pv_cr_logit_list_all_trials)
-    plt.plot(GAMS, means, label="CRLogit Policy", color=colors[3], marker=markers[2])
-    plt.fill_between(GAMS, means - sds, means + sds, color=colors[3], alpha=0.2)
-
-    # means, sds = calc_means_sems(pv_confHAI_policies_list_all_trials)
-    # plt.plot(GAMS, means, label="CONfHAI Policy", color="crimson", marker=markers[6])
-    # plt.fill_between(GAMS, means - sds, means + sds, color="crimson", alpha=0.2)
-
+    #     # Deferral rates lists for all trials
+    #     deferral_rates_lce_logistic_list_all_trials.append(deferral_rates_lce_logisitc_list)
+    #     deferral_rates_cate_interval_all_trials.append(deferral_rates_cate_interval)
+    #     deferral_rate_conhai_list_all_trials.append(deferral_rate_conhai_list)
+    #
+    # deferral_rates_lce_logistic_means, deferral_rates_lce_logistic_sem = calc_means_sems(
+    #     deferral_rates_lce_logistic_list_all_trials)
+    #
+    # deferral_rates_confhai_means, deferral_rates_confhai_sem = calc_means_sems(deferral_rate_conhai_list_all_trials)
+    # deferral_rates = [i / (len(pv_oracle_list_all_trials[0]) - 1) for i in
+    #                   range(len(pv_oracle_list_all_trials[0]))] if len(pv_oracle_list_all_trials[0]) > 1 else [1.0]
+    #
+    # deferral_rates_cate_interval_mean, _ = calc_means_sems(deferral_rates_cate_interval_all_trials)
+    #
+    # # Calculating true log gamma
+    # true_log_gamma = get_ihdp_true_gamma(ihdp_train_ds=train_dss[0], ihdp_test_ds=test_dss[0])
+    #
+    # # Plotting the results
+    # colors = ['b', 'g', 'r', 'm', 'b', 'purple', 'brown', 'c', ]
+    # pltlabels = ['CRLogit', 'CRLogit L1 0.5', 'CRLogit L1 0.25']
+    # markers = ['>', '+', '.', ',', 'o', 'v', 'x', 's', 'D', '|']
+    # fig = plt.figure(figsize=(8, 3))
+    #
+    # # Policy value - log gamma plot
+    # ax = ggplot_log_style_deferral(figsize=(682 / 72, 512 / 72), log_y=False)
+    #
+    #
+    #
+    # means, sds = calc_means_sems(pv_curr_list_all_trials)
+    # plt.plot(GAMS, means, label="Expert Policy", color=colors[1], marker=markers[1])
+    # plt.fill_between(GAMS, means - sds, means + sds, color=colors[1], alpha=0.2)
+    #
+    # means, sds = calc_means_sems(pv_cr_logit_list_all_trials)
+    # plt.plot(GAMS, means, label="CRLogit Policy", color=colors[3], marker=markers[2])
+    # plt.fill_between(GAMS, means - sds, means + sds, color=colors[3], alpha=0.2)
+    #
+    # # means, sds = calc_means_sems(pv_confHAI_policies_list_all_trials)
+    # # plt.plot(GAMS, means, label="CONfHAI Policy", color="crimson", marker=markers[6])
+    # # plt.fill_between(GAMS, means - sds, means + sds, color="crimson", alpha=0.2)
+    #
     # means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
     # plt.plot(GAMS, means, label="CARED Policy", color="C1", marker=markers[4])
     # plt.fill_between(GAMS, means - sds, means + sds, color="C1", alpha=0.2)
-
-    means, sds = calc_means_sems(pv_pess_policies_list_all_trials)
-    plt.plot(GAMS, means, label="Pessimistic Policy", color="navy", marker=markers[5])
-    plt.fill_between(GAMS, means - sds, means + sds, color="navy", alpha=0.2)
-
-    means, sds = calc_means_sems(pv_cate_interval_list_all_trials)
-    plt.plot(GAMS, means, label="B-Learner Policy", color=colors[5], marker=markers[3])
-    plt.fill_between(GAMS, means - sds, means + sds, color=colors[5], alpha=0.2)
-
-    means, sds = calc_means_sems(pv_oracle_list_all_trials)
-    plt.plot(GAMS, means, label="Oracle Policy", color=colors[0], marker=markers[0])
-    plt.fill_between(GAMS, means - sds, means + sds, color=colors[0], alpha=0.2)
-
-    plt.axvline(x=true_log_gamma, color='black', label=r'True $\log(\Lambda)$')
-
-    plt.xscale('log')
-    ax.set_ylabel("Policy Value")
-    # plt.legend(loc=2)
-    plt.legend(fontsize=12, loc=(1.02, 0.42))
-    plt.xlabel(r'$\log(\Lambda)$ uncertainty parameter', fontsize=15)
-    # plt.legend()
-    # plt.savefig("ihdp_policy_value_log_gamma_plot_updated.pdf")
-    plt.show()
-
-    # Deferral Rates plot
-    ax = ggplot_log_style_deferral(figsize=(682 / 72, 512 / 72), log_y=False)
-
-    # Expert's Policy
-    means, sds = calc_means_sems(pv_curr_list_all_trials)
-    plt.plot(deferral_rates, means, label="Expert Policy", color=colors[1], marker=markers[1])
-    plt.fill_between(deferral_rates, means - sds, means + sds, color=colors[1], alpha=0.2)
-
-    # # CONFHAI Policy
-    # means, sds = calc_means_sems(pv_confHAI_policies_list_all_trials)
-    # plt.scatter(deferral_rates_confhai_means, means, label="CONFHAI Policy", color="crimson", marker='D')
-    # plt.errorbar(deferral_rates_confhai_means, means,
-    #              yerr=sds,
-    #              fmt='o', color="crimson")
-
+    #
+    # means, sds = calc_means_sems(pv_pess_policies_list_all_trials)
+    # plt.plot(GAMS, means, label="Pessimistic Policy", color="navy", marker=markers[5])
+    # plt.fill_between(GAMS, means - sds, means + sds, color="navy", alpha=0.2)
+    #
+    # means, sds = calc_means_sems(pv_cate_interval_list_all_trials)
+    # plt.plot(GAMS, means, label="B-Learner Policy", color=colors[5], marker=markers[3])
+    # plt.fill_between(GAMS, means - sds, means + sds, color=colors[5], alpha=0.2)
+    #
+    # means, sds = calc_means_sems(pv_oracle_list_all_trials)
+    # plt.plot(GAMS, means, label="Oracle Policy", color=colors[0], marker=markers[0])
+    # plt.fill_between(GAMS, means - sds, means + sds, color=colors[0], alpha=0.2)
+    #
+    # plt.axvline(x=true_log_gamma, color='black', label=r'True $\log(\Lambda)$')
+    #
+    # plt.xscale('log')
+    # ax.set_ylabel("Policy Value")
+    # # plt.legend(loc=2)
+    # plt.legend(fontsize=12, loc=(1.02, 0.42))
+    # plt.xlabel(r'$\log(\Lambda)$ uncertainty parameter', fontsize=15)
+    # plt.show()
+    #
+    # # Deferral Rates plot
+    # ax = ggplot_log_style_deferral(figsize=(682 / 72, 512 / 72), log_y=False)
+    #
+    # # Expert's Policy
+    # means, sds = calc_means_sems(pv_curr_list_all_trials)
+    # plt.plot(deferral_rates, means, label="Expert Policy", color=colors[1], marker=markers[1])
+    # plt.fill_between(deferral_rates, means - sds, means + sds, color=colors[1], alpha=0.2)
+    #
+    # # # CONFHAI Policy
+    # # means, sds = calc_means_sems(pv_confHAI_policies_list_all_trials)
+    # # plt.scatter(deferral_rates_confhai_means, means, label="CONFHAI Policy", color="crimson", marker='D')
+    # # plt.errorbar(deferral_rates_confhai_means, means,
+    # #              yerr=sds,
+    # #              fmt='o', color="crimson")
+    #
     # # LCE Policy - Logistic
     # means, sds = calc_means_sems(pv_lce_logistic_list_all_trials)
     # plt.scatter(deferral_rates_lce_logistic_means, means, label="CARED Policy", color="C1", marker=markers[4])
     # plt.errorbar(deferral_rates_lce_logistic_means, means,
     #              yerr=sds,
     #              fmt='o', color="C1")
-
-
-    # B-Learner Policy
-    means, sds = calc_means_sems(pv_cate_interval_list_all_trials)
-    plt.scatter(deferral_rates_cate_interval_mean, means, label="B-Learner Policy", color=colors[5], marker=markers[3])
-    plt.errorbar(deferral_rates_cate_interval_mean, means,
-                 yerr=sds,
-                 fmt='o', color=colors[5])
-    # Random Defer Policy
-    means, sds = calc_means_sems(pv_random_defer_list_all_trials)
-    plt.scatter(deferral_rates_random_defer_list, means, label="Random Deferral Policy", color="maroon",
-                marker=markers[5])
-    plt.errorbar(deferral_rates_random_defer_list, means,
-                 yerr=sds,
-                 fmt='o', color="maroon")
-    # Oracle Policy
-    means, sds = calc_means_sems(pv_oracle_list_all_trials)
-    plt.plot(deferral_rates, means, label="Oracle Policy", color=colors[0], marker=markers[0])
-    plt.fill_between(deferral_rates, means - sds, means + sds, color=colors[0], alpha=0.2)
-
-    ax.set_ylabel("Policy Value")
-    ax.set_xlabel("Deferral Rate")
-    # plt.legend(loc=2)
-    plt.legend(fontsize=12, loc=(1.02, 0.42))
-    # plt.legend()
-    # plt.savefig("ihdp_policy_value_deferral_plot_updated_.pdf")
-    plt.show()
+    #
+    #
+    # # B-Learner Policy
+    # means, sds = calc_means_sems(pv_cate_interval_list_all_trials)
+    # plt.scatter(deferral_rates_cate_interval_mean, means, label="B-Learner Policy", color=colors[5], marker=markers[3])
+    # plt.errorbar(deferral_rates_cate_interval_mean, means,
+    #              yerr=sds,
+    #              fmt='o', color=colors[5])
+    # # Random Defer Policy
+    # means, sds = calc_means_sems(pv_random_defer_list_all_trials)
+    # plt.scatter(deferral_rates_random_defer_list, means, label="Random Deferral Policy", color="maroon",
+    #             marker=markers[5])
+    # plt.errorbar(deferral_rates_random_defer_list, means,
+    #              yerr=sds,
+    #              fmt='o', color="maroon")
+    # # Oracle Policy
+    # means, sds = calc_means_sems(pv_oracle_list_all_trials)
+    # plt.plot(deferral_rates, means, label="Oracle Policy", color=colors[0], marker=markers[0])
+    # plt.fill_between(deferral_rates, means - sds, means + sds, color=colors[0], alpha=0.2)
+    #
+    # ax.set_ylabel("Policy Value")
+    # ax.set_xlabel("Deferral Rate")
+    # plt.legend(fontsize=12, loc=(1.02, 0.42))
+    # # plt.savefig("ihdp_policy_value_deferral_plot.pdf")
+    # plt.show()

@@ -19,7 +19,12 @@ from optuna.integration.pytorch_lightning import PyTorchLightningPruningCallback
 from ray import tune
 
 ray.shutdown()
-ray.init()
+
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+ray.init(log_to_driver=True)
 
 torch.manual_seed(42)
 torch.set_float32_matmul_precision('medium')
@@ -140,7 +145,8 @@ def objective_ray(trial, train_loader, val_loader, devices, policy_model,
     ray.train.report({"val_loss": val_loss})
     # ray.train.report({"output_dims": output_dims})
 
-    # return train_loss
+
+    # return val_loss
 
 
 class LCE_Policy:
@@ -396,7 +402,7 @@ class LCE_Policy:
         return costs_matrix
 
     def fit(self, ds_train, ds_valid,
-            batch_size=32, patience=5, max_epochs=100, lr=0.001, weight_decay=0.0001, devices=[2,3]):
+            batch_size=32, patience=5, max_epochs=100, lr=0.001, weight_decay=0.0001, devices=[1]):
         a_expert_train = None
         y_expert_train = None
         a_expert_valid = None
@@ -472,13 +478,13 @@ class LCE_Policy:
         study = tune.run(
             objective_with_params_ray,
             config=config,
-            num_samples=10,  # 50 ##10*
+            num_samples=10,  # 50
             resources_per_trial={"gpu": 0.3},
             keep_checkpoints_num=1,
             checkpoint_score_attr="val_loss",
         )
         # Ray best params
-        # best_trial = study.best_trial
+        best_trial = study.best_trial
         best_trial = study.get_best_trial(metric="val_loss", mode="min")
 
         # # Gets best checkpoint for trial based on val loss
@@ -513,6 +519,8 @@ class LCE_Policy:
         #
         #     self.policy_model = nn.Sequential(*layers)
 
+        # optimizer_name = "AdamW"
+
         final_model = LCEModel(pmodel=self.policy_model,
                                training_costs=costs_matrix_train,
                                validation_costs=costs_matrix_valid,
@@ -523,7 +531,7 @@ class LCE_Policy:
                                             mode="min")
         trainer = Trainer(callbacks=[early_stop_callback],
                           max_epochs=max_epochs, log_every_n_steps=8, accelerator="gpu", devices=devices
-                          , strategy='ddp_find_unused_parameters_true', val_check_interval=1.0)
+                          , strategy='ddp', val_check_interval=1.0)
         trainer.fit(final_model, train_dataloaders=train_loader, val_dataloaders=valid_loader,
                     )
 
